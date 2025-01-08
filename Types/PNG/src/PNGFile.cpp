@@ -17,25 +17,32 @@ bool PNGFile::Update()
     auto& data = this->obj->GetData();
 
     CHECK(data.Copy<Signature>(0, signature), false, "");
+    // check type pt header (return false altfel)
     CHECK(data.Copy<IhdrChunk>(sizeof(Signature), ihdr), false, "");
+    // extragem width and hight
+
+    // vedem daca avem date relevante lua din IdatChunk (unul sau mai multe chunkuri)
 
     uint64 offset = sizeof(Signature) + sizeof(IhdrChunk);
     bool found    = false;
     while (offset < data.GetSize())
     {
-        uint16 marker;
-        CHECK(data.Copy<uint16>(offset, marker), false, "");
-
-        // TODO: Translate the PNG markers
-
-        // get the width and height 
-        // if (marker == PNG::JPG_SOF0_MARKER || marker == JPG::JPG_SOF1_MARKER || 
-        //     marker == JPG::JPG_SOF2_MARKER || marker == JPG::JPG_SOF3_MARKER)
-        // {
-        //     CHECK(data.Copy<SOF0MarkerSegment>(offset + 5, sof0MarkerSegment), false, "");
-        //     found = true;
-        //     break;
-        // }
+        uint32 chunkType;
+        CHECK(data.Copy<uint32>(offset, chunkType), false, "");
+        //if (PNG::IDAT_CHUNK_TYPE == chunkType) 
+        //{
+        //    CHECK(data.Copy<IdatChunk>(offset - 4, idat), false, "");
+        //}
+        //if (PNG::PLTE_CHUNK_TYPE == chunkType) 
+        //{
+        //    CHECK(data.Copy<PlteChunk>(offset - 4, plte), false, "");
+        //}
+        if (PNG::IEND_CHUNK_TYPE == chunkType)
+        {
+            CHECK(data.Copy<IendChunk>(offset - 4, iend), false, "");
+            found = true;
+            break;
+        }
         offset += 1;
     }
     return found;

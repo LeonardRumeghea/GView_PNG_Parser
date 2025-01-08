@@ -14,6 +14,9 @@ namespace Type
 
     const uint8_t PNG_SIGNATURE[8] = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
     const uint32_t IHDR_CHUNK_TYPE = 0x49484452; // 'IHDR'
+    const uint32 IDAT_CHUNK_TYPE = 0x49444154; // 'IDAT'
+    const uint32 IEND_CHUNK_TYPE = 0x49454E44; // 'IEND'
+    const uint32 PLTE_CHUNK_TYPE = 0x504C5445; // 'PLTE'
 
     struct Signature {
         uint8_t signature[8];
