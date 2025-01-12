@@ -13,10 +13,15 @@ namespace Type
 #pragma pack(push, 2)
 
     const uint8_t PNG_SIGNATURE[8] = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
-    const uint32_t IHDR_CHUNK_TYPE = 0x49484452; // 'IHDR'
+    const uint8_t IHDR_CHUNK_TYPE[4] = { 0x49, 0x48, 0x44, 0x52 }; // 'IHDR'
+    
+    // const uint32_t IHDR_CHUNK_TYPE = 0x49484452; // 'IHDR'
     const uint32 IDAT_CHUNK_TYPE = 0x49444154; // 'IDAT'
     const uint32 IEND_CHUNK_TYPE = 0x49454E44; // 'IEND'
     const uint32 PLTE_CHUNK_TYPE = 0x504C5445; // 'PLTE'
+    const uint32 sRGB_CHUNK_TYPE = 0x73524742; // 'sRGB'
+    const uint8_t CHUNK_SIZE = 2; // Size of the chunk header (length + type + CRC)
+
 
     struct Signature {
         uint8_t signature[8];
@@ -24,7 +29,7 @@ namespace Type
 
     struct IhdrChunk {
         uint32 length;    // Length of the IHDR chunk data
-        uint32 chunkType; // Chunk type, should be 'IHDR'
+        uint8 chunkType[4]; // Chunk type, should be 'IHDR'
         uint32 width;     // Image width in pixels
         uint32 height;    // Image height in pixels
         uint8 bitDepth;   // Bit depth
@@ -35,23 +40,30 @@ namespace Type
         uint32 crc;       // CRC for the IHDR chunk
     };
 
+    struct sRgbChunk {
+        uint32 length;    // Length of the sRGB chunk data (1 byte)
+        uint8 chunkType[4]; // Chunk type, should be 'sRGB'
+        uint8 renderingIntent; // Rendering intent
+        uint32 crc;       // CRC for the sRGB chunk
+    };
+
     struct PlteChunk {
         uint32 length;    // Length of the PLTE chunk data
-        uint32 chunkType; // Chunk type, should be 'PLTE'
+        uint8 chunkType[4]; // Chunk type, should be 'PLTE'
         uint8* palette;   // Palette entries
         uint32 crc;       // CRC for the PLTE chunk
     };
 
     struct IdatChunk {
         uint32 length;    // Length of the IDAT chunk data
-        uint32 chunkType; // Chunk type, should be 'IDAT'
+        uint8 chunkType[4]; // Chunk type, should be 'IDAT'
         uint8* data;      // Compressed image data
         uint32 crc;       // CRC for the IDAT chunk
     };
 
     struct IendChunk {
         uint32 length;    // Length of the IEND chunk data (always 0)
-        uint32 chunkType; // Chunk type, should be 'IEND'
+        uint8 chunkType[4]; // Chunk type, should be 'IEND'
         uint32 crc;       // CRC for the IEND chunk
     };
 
@@ -62,6 +74,7 @@ namespace Type
           public:
             Signature signature;
             IhdrChunk ihdr;
+            sRgbChunk srgb;
             PlteChunk* plte;
             IdatChunk* idat;
             IendChunk iend;

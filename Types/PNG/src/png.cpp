@@ -1,4 +1,5 @@
 #include "png.hpp"
+#include <fstream>
 
 using namespace AppCUI;
 using namespace AppCUI::Utils;
@@ -14,22 +15,23 @@ extern "C"
 
 PLUGIN_EXPORT bool Validate(const AppCUI::Utils::BufferView& buf, const std::string_view& extension)
 {
-    // TODO: Check if are there any additional checks that can be done here
+    // Check if the buffer is large enough to contain the PNG signature and the IHDR chunk
     if (buf.GetLength() < sizeof(PNG::Signature) + sizeof(PNG::IhdrChunk)) {
-    return false;
+        return false;
     }
 
+    // Check if the first 8 bytes are the PNG signature 
     auto signature = buf.GetObject<PNG::Signature>();
-    if (memcmp(signature->signature, PNG::PNG_SIGNATURE, 8) != 0) {
+    if (memcmp(signature->signature, PNG::PNG_SIGNATURE, sizeof(PNG::PNG_SIGNATURE)) != 0) {
         return false;
     }
 
+    // Check if the next chunk is the IHDR (Image Header) chunk. This is done by checking the chunk type
     auto ihdrChunk = buf.GetObject<PNG::IhdrChunk>(sizeof(PNG::Signature));
-    if (ihdrChunk->chunkType != PNG::IHDR_CHUNK_TYPE) {
+    if (memcmp(ihdrChunk->chunkType, PNG::IHDR_CHUNK_TYPE, sizeof(PNG::IHDR_CHUNK_TYPE)) != 0) {
         return false;
     }
-
-    // Additional validation for IHDR fields can be added here if necessary
+    
     return true;
 }
     PLUGIN_EXPORT TypeInterface* CreateInstance()
@@ -55,6 +57,34 @@ PLUGIN_EXPORT bool Validate(const AppCUI::Utils::BufferView& buf, const std::str
 
         settings.AddZone(offset, sizeof(PNG::IhdrChunk), ColorPair{ Color::Olive, Color::DarkBlue }, "IHDR Chunk");
         offset += sizeof(PNG::IhdrChunk);
+
+        while (offset < dataSize - PNG::CHUNK_SIZE) {
+            uint32 chunkLength;
+            uint32 chunkType;
+
+            if (!data.Copy<uint32>(offset, chunkLength)) {
+                break;
+            }
+
+            if (!data.Copy<uint32>(offset + 4, chunkType)) {
+                break;
+            }
+
+            if (chunkType == PNG::IDAT_CHUNK_TYPE) {
+                settings.AddZone(offset, PNG::CHUNK_SIZE, ColorPair{ Color::Green, Color::DarkBlue }, "IDAT Chunk");
+                offset += PNG::CHUNK_SIZE;
+            } else {
+                break;
+            }
+
+            segmentCount++;
+        }
+
+        if (offset < dataSize) {
+            settings.AddZone(offset, dataSize - offset, ColorPair{ Color::Red, Color::DarkBlue }, "Trailing Data");
+        }
+
+        png->selectionZoneInterface = win->GetSelectionZoneInterfaceFromViewerCreation(settings);
             
     }
 
