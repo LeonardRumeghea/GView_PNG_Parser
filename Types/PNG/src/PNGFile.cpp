@@ -14,21 +14,24 @@ bool PNGFile::Update()
     memset(&idat, 0, sizeof(idat));
     memset(&iend, 0, sizeof(iend));
 
-    auto& data = this->obj->GetData();
+    auto& data    = this->obj->GetData();
+    uint64 offset = 0;
+    bool found    = false;
+    
+    // Get the PNG Signature and IHDR chunk
+    CHECK(data.Copy<Signature>(offset, signature), false, "");
+    offset += sizeof(Signature);
 
-    CHECK(data.Copy<Signature>(0, signature), false, "");
-    // check type pt header (return false altfel)
-    CHECK(data.Copy<IhdrChunk>(sizeof(Signature), ihdr), false, "");
+    CHECK(data.Copy<IhdrChunk>(offset, ihdr), false, "");
+    offset += sizeof(IhdrChunk);
+    
     // extragem width and hight
 
     // vedem daca avem date relevante lua din IdatChunk (unul sau mai multe chunkuri)
-
-    uint64 offset = sizeof(Signature) + sizeof(IhdrChunk);
-    bool found    = false;
-    while (offset < data.GetSize())
-    {
-        uint32 chunkType;
-        CHECK(data.Copy<uint32>(offset, chunkType), false, "");
+    // while (offset < data.GetSize())
+    // {
+    //     uint32 chunkType;
+    //     CHECK(data.Copy<uint32>(offset, chunkType), false, "");
         //if (PNG::IDAT_CHUNK_TYPE == chunkType) 
         //{
         //    CHECK(data.Copy<IdatChunk>(offset - 4, idat), false, "");
@@ -37,15 +40,38 @@ bool PNGFile::Update()
         //{
         //    CHECK(data.Copy<PlteChunk>(offset - 4, plte), false, "");
         //}
-        if (PNG::IEND_CHUNK_TYPE == chunkType)
-        {
-            CHECK(data.Copy<IendChunk>(offset - 4, iend), false, "");
-            found = true;
-            break;
-        }
-        offset += 1;
-    }
-    return found;
+    //     if (PNG::IEND_CHUNK_TYPE == chunkType)
+    //     {
+    //         CHECK(data.Copy<IendChunk>(offset - 4, iend), false, "");
+    //         found = true;
+    //         break;
+    //     }
+    //     offset += 1;
+    // }
+
+    // offset = sizeof(PNG::Signature) + sizeof(PNG::IhdrChunk);
+
+    // while (offset < bufSize)
+    // {
+    //     if (memcmp(data + offset, PNG::IDAT_CHUNK, sizeof(PNG::IDAT_CHUNK)) == 0) {
+    //         foundIDAT = true;
+    //     }
+
+    //     if (memcmp(data + offset, PNG::IEND_CHUNK, sizeof(PNG::IEND_CHUNK)) == 0) {
+    //         const uint8 sizeZero[] = { 0, 0, 0, 0 };
+    //         if (memcmp(data + offset - sizeof(PNG::IEND_CHUNK), sizeZero, sizeof(sizeZero))== 0) {
+    //             foundIEND = true;
+    //         }
+    //     }
+
+    //     if (foundIDAT && foundIEND) {
+    //         break;
+    //     }
+
+    //     offset++;
+    // }
+
+    return true;
 }
 
 bool PNGFile::LoadImageToObject(Image& img, uint32 index)

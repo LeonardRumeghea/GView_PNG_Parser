@@ -10,17 +10,36 @@ namespace Type
 	namespace PNG
 	{
 
-#pragma pack(push, 2)
+#pragma pack(push, 1)
 
-    const uint8_t PNG_SIGNATURE[8] = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
-    const uint8_t IHDR_CHUNK_TYPE[4] = { 0x49, 0x48, 0x44, 0x52 }; // 'IHDR'
-    
-    // const uint32_t IHDR_CHUNK_TYPE = 0x49484452; // 'IHDR'
-    const uint32 IDAT_CHUNK_TYPE = 0x49444154; // 'IDAT'
-    const uint32 IEND_CHUNK_TYPE = 0x49454E44; // 'IEND'
-    const uint32 PLTE_CHUNK_TYPE = 0x504C5445; // 'PLTE'
-    const uint32 sRGB_CHUNK_TYPE = 0x73524742; // 'sRGB'
-    const uint8_t CHUNK_SIZE = 2; // Size of the chunk header (length + type + CRC)
+    constexpr uint8_t PNG_SIGNATURE[8] = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+    constexpr uint8_t IHDR_CHUNK[4]    = { 0x49, 0x48, 0x44, 0x52 }; // 'IHDR'
+    constexpr uint8_t IDAT_CHUNK[4]   = { 0x49, 0x44, 0x41, 0x54 }; // 'IDAT'
+    constexpr uint8_t IEND_CHUNK[4]    = { 0x49, 0x45, 0x4E, 0x44 }; // 'IEND'
+
+    constexpr uint32_t IHDR_CHUNK_TYPE = 0x52444849; // 'IHDR' -> 49 48 44 52
+    constexpr uint32_t sRGB_CHUNK_TYPE = 0x42475273; // 'sRGB' -> 73 52 47 42
+    constexpr uint32_t IDAT_CHUNK_TYPE = 0x54414449; // 'IDAT' -> 49 44 41 54
+    constexpr uint32_t IEND_CHUNK_TYPE = 0x444E4549; // 'IEND' -> 49 45 4E 44
+    constexpr uint32_t PLTE_CHUNK_TYPE = 0x45544C50; // 'PLTE' -> 50 4C 54 45
+    constexpr uint32_t cHRM_CHUNK_TYPE = 0x4D524863; // 'cHRM' -> 63 48 52 4D
+    constexpr uint32_t gAMA_CHUNK_TYPE = 0x414D4167; // 'gAMA' -> 67 41 4D 41
+    constexpr uint32_t iCCP_CHUNK_TYPE = 0x50434369; // 'iCCP' -> 69 43 43 50
+    constexpr uint32_t sBIT_CHUNK_TYPE = 0x54494273; // 'sBIT' -> 73 42 49 54
+    constexpr uint32_t bKGD_CHUNK_TYPE = 0x44474B62; // 'bKGD' -> 62 4B 47 44
+    constexpr uint32_t hIST_CHUNK_TYPE = 0x54534968; // 'hIST' -> 68 49 53 54
+    constexpr uint32_t tRNS_CHUNK_TYPE = 0x534E5274; // 'tRNS' -> 74 52 4E 53
+    constexpr uint32_t pHYs_CHUNK_TYPE = 0x73594870; // 'pHYs' -> 70 48 59 73
+    constexpr uint32_t sPLT_CHUNK_TYPE = 0x544C5073; // 'sPLT' -> 73 50 4C 54
+    constexpr uint32_t tIME_CHUNK_TYPE = 0x454D4974; // 'tIME' -> 74 49 4D 45
+    constexpr uint32_t tEXt_CHUNK_TYPE = 0x74584574; // 'tEXt' -> 74 45 58 74
+    constexpr uint32_t zTXt_CHUNK_TYPE = 0x7458547A; // 'zTXt' -> 7A 54 58 74
+    constexpr uint32_t iTXt_CHUNK_TYPE = 0x74585469; // 'iTXt' -> 69 54 58 74
+
+    constexpr uint8_t CRC_SIZE = 4; // Size of the CRC field
+    constexpr uint8_t CHUNK_SIZE = 2; // Size of the chunk header (length + type + CRC)
+
+    #define reverseBytes32(x) (((x & 0x000000FF) << 24) | ((x & 0x0000FF00) << 8) | ((x & 0x00FF0000) >> 8) | ((x & 0xFF000000) >> 24))
 
 
     struct Signature {
