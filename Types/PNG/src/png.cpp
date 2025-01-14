@@ -14,16 +14,9 @@ extern "C" {
 
 PLUGIN_EXPORT bool Validate(const AppCUI::Utils::BufferView& buf, const std::string_view& extension)
 {
-    // Issue #1: The buffer is not large enough??
-
-    uint64 offset = 0;
-    uint64 bufSize = buf.GetLength();
-    const uint8* data = buf.GetData();
-
-    bool foundIDAT = false;
-
-    // Check if the buffer is large enough to contain the PNG signature and the IHDR chunk
-    if (buf.GetLength() < sizeof(PNG::Signature) + sizeof(PNG::IhdrChunk)) {
+    // Check if the buffer is large enough to contain the PNG signature, IHDR chunk, at least one IDAT chunk and the IEND chunk
+    const uint8 minSize = sizeof(PNG::Signature) + sizeof(PNG::IhdrChunk) + sizeof(PNG::IdatChunk) + sizeof(PNG::IendChunk);
+    if (buf.GetLength() < minSize) {
         return false;
     }
 
@@ -39,15 +32,17 @@ PLUGIN_EXPORT bool Validate(const AppCUI::Utils::BufferView& buf, const std::str
         return false;
     }
 
-    // return true;
-
-    offset = sizeof(PNG::Signature) + sizeof(PNG::IhdrChunk);
+    // Check if there is at least one IDAT (Image Data) chunk. This is done by searching for the IDAT chunk type
+    // The IDAT chunk is the compressed image data and it appears among the first chunks in the file
+    uint64 offset     = sizeof(PNG::Signature) + sizeof(PNG::IhdrChunk);
+    uint64 bufSize    = buf.GetLength();
+    const uint8* data = buf.GetData();
+    bool foundIDAT    = false;
 
     while (!foundIDAT && offset < bufSize) {
-        if (memcmp(data + offset, PNG::IDAT_CHUNK, sizeof(PNG::IDAT_CHUNK)) == 0) {
+        if (memcmp(data + offset, PNG::IDAT_CHUNK, PNG::CHUNK_TYPE_SIZE) == 0) {
             foundIDAT = true;
         }
-
         offset++;
     }
 
@@ -63,11 +58,10 @@ void CreateBufferView(Reference<GView::View::WindowInterface> win, Reference<PNG
 {
     BufferViewer::Settings settings;
 
-    auto& data             = png->obj->GetData();
-    const uint64 dataSize  = data.GetSize();
-    uint64 offset          = 0;
-    uint8 colorIndex       = 0;
-    const uint8 colorCount = 10;
+    auto& data            = png->obj->GetData();
+    const uint64 dataSize = data.GetSize();
+    uint64 offset         = 0;
+    uint8 colorIndex      = 0;
 
     const ColorPair unknownColor        = ColorPair{ Color::Red, Color::DarkBlue };
     const std::vector<ColorPair> colors = { ColorPair{ Color::Teal, Color::DarkBlue },  ColorPair{ Color::Yellow, Color::DarkBlue },
@@ -76,12 +70,15 @@ void CreateBufferView(Reference<GView::View::WindowInterface> win, Reference<PNG
                                             ColorPair{ Color::Olive, Color::DarkBlue }, ColorPair{ Color::Silver, Color::DarkBlue },
                                             ColorPair{ Color::White, Color::DarkBlue }, ColorPair{ Color::Black, Color::DarkBlue } };
 
+    const auto colorCount = colors.size();
 
-    settings.AddZone(0, sizeof(PNG::Signature), colors[colorIndex++ % colorCount], "PNG Signature");
+    settings.AddZone(0, sizeof(PNG::Signature), colors[colorIndex++], "PNG Signature");
     offset += sizeof(PNG::Signature);
 
-    settings.AddZone(offset, sizeof(PNG::IhdrChunk), colors[colorIndex++ % colorCount], "IHDR Chunk");
+    settings.AddZone(offset, sizeof(PNG::IhdrChunk), colors[colorIndex++], "IHDR Chunk");
     offset += sizeof(PNG::IhdrChunk);
+
+    // return;
 
     while (offset < dataSize) {
         uint32 chunkLength;
@@ -97,89 +94,92 @@ void CreateBufferView(Reference<GView::View::WindowInterface> win, Reference<PNG
         chunkLength = reverseBytes32(chunkLength);
 
         // The next 4 bytes are the chunk type (e.g. IHDR, IDAT, IEND, sRGB, etc.)
-        if (!data.Copy<uint32>(offset + sizeof(chunkLength), chunkType)) {
+        if (!data.Copy<uint32>(offset + PNG::CHUNK_TYPE_SIZE, chunkType)) {
             break;
         }
 
-        // Compute the size of the chunk based on the length of the chunk data, which is variable and the size of the chunk type, length and CRC fields (4 + 4 + 4 = 12 bytes)
-        chunkSize = sizeof(chunkLength) + sizeof(chunkType) + chunkLength + PNG::CRC_SIZE;
+        // Compute the size of the chunk based on the length of the chunk data, which is variable and the size of the chunk type, 
+        // length and CRC fields (4 + 4 +4 = 12 bytes)
+        chunkSize = PNG::CHUNK_LENGTH_SIZE + PNG::CHUNK_TYPE_SIZE + chunkLength + PNG::CRC_SIZE;
 
         switch (chunkType) {
-        case PNG::sRGB_CHUNK_TYPE:
-            settings.AddZone(offset, chunkSize, colors[colorIndex++ % colorCount], "sRGB Chunk");
+        case PNG::SRGB_CHUNK_TYPE:
+            // ADD_ZONE("sRGB Chunk");
+            settings.AddZone(offset, chunkSize, colors[colorIndex++], "sRGB Chunk");
             break;
 
         case PNG::PLTE_CHUNK_TYPE:
-            settings.AddZone(offset, chunkSize, colors[colorIndex++ % colorCount], "PLTE Chunk");
+            settings.AddZone(offset, chunkSize, colors[colorIndex++], "PLTE Chunk");
             break;
 
         case PNG::IDAT_CHUNK_TYPE:
-            settings.AddZone(offset, chunkSize, colors[colorIndex++ % colorCount], "IDAT Chunk");
+            settings.AddZone(offset, chunkSize, colors[colorIndex++], "IDAT Chunk");
             break;
 
         case PNG::IEND_CHUNK_TYPE:
-            settings.AddZone(offset, chunkSize, colors[colorIndex++ % colorCount], "IEND Chunk");
+            settings.AddZone(offset, chunkSize, colors[colorIndex++], "IEND Chunk");
             break;
 
-        case PNG::cHRM_CHUNK_TYPE:
-            settings.AddZone(offset, chunkSize, colors[colorIndex++ % colorCount], "cHRM Chunk");
+        case PNG::CHRM_CHUNK_TYPE:
+            settings.AddZone(offset, chunkSize, colors[colorIndex++], "cHRM Chunk");
             break;
 
-        case PNG::gAMA_CHUNK_TYPE:
-            settings.AddZone(offset, chunkSize, colors[colorIndex++ % colorCount], "gAMA Chunk");
+        case PNG::GAMA_CHUNK_TYPE:
+            settings.AddZone(offset, chunkSize, colors[colorIndex++], "gAMA Chunk");
             break;
 
-        case PNG::iCCP_CHUNK_TYPE:
-            settings.AddZone(offset, chunkSize, colors[colorIndex++ % colorCount], "iCCP Chunk");
+        case PNG::ICCP_CHUNK_TYPE:
+            settings.AddZone(offset, chunkSize, colors[colorIndex++], "iCCP Chunk");
             break;
 
-        case PNG::sBIT_CHUNK_TYPE:
-            settings.AddZone(offset, chunkSize, colors[colorIndex++ % colorCount], "sBIT Chunk");
+        case PNG::SBIT_CHUNK_TYPE:
+            settings.AddZone(offset, chunkSize, colors[colorIndex++], "sBIT Chunk");
             break;
 
-        case PNG::bKGD_CHUNK_TYPE:
-            settings.AddZone(offset, chunkSize, colors[colorIndex++ % colorCount], "bKGD Chunk");
+        case PNG::BKGD_CHUNK_TYPE:
+            settings.AddZone(offset, chunkSize, colors[colorIndex++], "bKGD Chunk");
             break;
 
-        case PNG::hIST_CHUNK_TYPE:
-            settings.AddZone(offset, chunkSize, colors[colorIndex++ % colorCount], "hIST Chunk");
+        case PNG::HIST_CHUNK_TYPE:
+            settings.AddZone(offset, chunkSize, colors[colorIndex++], "hIST Chunk");
             break;
 
-        case PNG::tRNS_CHUNK_TYPE:
-            settings.AddZone(offset, chunkSize, colors[colorIndex++ % colorCount], "tRNS Chunk");
+        case PNG::TRNS_CHUNK_TYPE:
+            settings.AddZone(offset, chunkSize, colors[colorIndex++], "tRNS Chunk");
             break;
 
-        case PNG::pHYs_CHUNK_TYPE:
-            settings.AddZone(offset, chunkSize, colors[colorIndex++ % colorCount], "pHYs Chunk");
+        case PNG::PHYS_CHUNK_TYPE:
+            settings.AddZone(offset, chunkSize, colors[colorIndex++], "pHYs Chunk");
             break;
 
-        case PNG::sPLT_CHUNK_TYPE:
-            settings.AddZone(offset, chunkSize, colors[colorIndex++ % colorCount], "sPLT Chunk");
+        case PNG::SPLT_CHUNK_TYPE:
+            settings.AddZone(offset, chunkSize, colors[colorIndex++], "sPLT Chunk");
             break;
 
-        case PNG::tIME_CHUNK_TYPE:
-            settings.AddZone(offset, chunkSize, colors[colorIndex++ % colorCount], "tIME Chunk");
+        case PNG::TIME_CHUNK_TYPE:
+            settings.AddZone(offset, chunkSize, colors[colorIndex++], "tIME Chunk");
             break;
 
-        case PNG::tEXt_CHUNK_TYPE:
-            settings.AddZone(offset, chunkSize, colors[colorIndex++ % colorCount], "tEXt Chunk");
+        case PNG::TEXT_CHUNK_TYPE:
+            settings.AddZone(offset, chunkSize, colors[colorIndex++], "tEXt Chunk");
             break;
 
-        case PNG::zTXt_CHUNK_TYPE:
-            settings.AddZone(offset, chunkSize, colors[colorIndex++ % colorCount], "zTXt Chunk");
+        case PNG::ZTXT_CHUNK_TYPE:
+            settings.AddZone(offset, chunkSize, colors[colorIndex++], "zTXt Chunk");
             break;
 
-        case PNG::iTXt_CHUNK_TYPE:
-            settings.AddZone(offset, chunkSize, colors[colorIndex++ % colorCount], "iTXt Chunk");
+        case PNG::ITXT_CHUNK_TYPE:
+            settings.AddZone(offset, chunkSize, colors[colorIndex++], "iTXt Chunk");
             break;
 
         default:
-            settings.AddZone(offset, chunkSize, unknownColor, "Unknown Chunk");
             chunkSize = 1;
+            settings.AddZone(offset, chunkSize, unknownColor, "Unknown Chunk");
             break;
         }
 
         offset += chunkSize;
+        colorIndex %= colorCount;
     }
 
     // If there is any trailing data after the last chunk, we will add it to the buffer viewer
@@ -193,8 +193,10 @@ void CreateBufferView(Reference<GView::View::WindowInterface> win, Reference<PNG
 void CreateImageView(Reference<GView::View::WindowInterface> win, Reference<PNG::PNGFile> png)
 {
     GView::View::ImageViewer::Settings settings;
+
     settings.SetLoadImageCallback(png.ToBase<View::ImageViewer::LoadImageInterface>());
     settings.AddImage(0, png->obj->GetData().GetSize());
+    
     win->CreateViewer(settings);
 }
 
@@ -203,11 +205,11 @@ PLUGIN_EXPORT bool PopulateWindow(Reference<GView::View::WindowInterface> win)
     auto png = win->GetObject()->GetContentType<PNG::PNGFile>();
     png->Update();
 
-    // add viewer
+    // Add viewer
     CreateImageView(win, png);
     CreateBufferView(win, png);
 
-    // add panels
+    // Add panels
     win->AddPanel(Pointer<TabPage>(new PNG::Panels::Information(png)), true);
 
     return true;

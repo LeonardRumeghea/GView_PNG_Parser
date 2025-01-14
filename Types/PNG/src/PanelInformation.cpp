@@ -14,8 +14,7 @@ Panels::Information::Information(Reference<GView::Type::PNG::PNGFile> _png) : Ta
 
 String getColorType(uint8_t colorType)
 {
-    switch (colorType)
-    {
+    switch (colorType) {
     case 0:
         return String("Grayscale");
     case 2:
@@ -33,8 +32,7 @@ String getColorType(uint8_t colorType)
 
 String getInterlaceMethod(uint8_t interlace)
 {
-    switch (interlace)
-    {
+    switch (interlace) {
     case 0:
         return String("No interlace");
     case 1:
@@ -52,19 +50,32 @@ void Panels::Information::UpdateGeneralInformation()
     general->DeleteAllItems();
     general->AddItem("File");
 
-    // size
+    // Size of the PNG file
     general->AddItem({ "Size", tempStr.Format("%s bytes", n.ToString(png->obj->GetData().GetSize(), { NumericFormatFlags::None, 10, 3, ',' }).data()) });
 
-    // Size
+    // Information about the PNG file from the IHDR chunk
+    general->AddItem("PNG Information");
+
     const auto width  = Endian::BigToNative(png->ihdr.width);
     const auto height = Endian::BigToNative(png->ihdr.height);
-
     general->AddItem({ "Dimension", tempStr.Format("%u x %u", width, height) });
-    general->AddItem({ "Bit Depth", tempStr.Format("%u bit per channel", png->ihdr.bitDepth) });
-    general->AddItem({ "Color Type", tempStr.Format("%u: %s", png->ihdr.colorType, getColorType(png->ihdr.colorType).GetText()) });
-    general->AddItem({ "Compression Method", tempStr.Format("%u", png->ihdr.compression) });
-    general->AddItem({ "Filter Method", tempStr.Format("%u", png->ihdr.filter) });
-    general->AddItem({ "Interlace Method", tempStr.Format("%u: %s", png->ihdr.interlace, getInterlaceMethod(png->ihdr.interlace).GetText()) });
+
+    const auto bitDepth = png->ihdr.bitDepth;
+    general->AddItem({ "Bit Depth", tempStr.Format("%u bit per channel", bitDepth) });
+    
+    const auto colorType = png->ihdr.colorType;
+    const auto colorTypeStr = getColorType(colorType);
+    general->AddItem({ "Color Type", tempStr.Format("%u: %s", colorType, colorTypeStr.GetText()) });
+
+    const auto compressionMethod = png->ihdr.compression;
+    general->AddItem({ "Compression Method", tempStr.Format("%u", compressionMethod) });
+
+    const auto filterMethod = png->ihdr.filter;
+    general->AddItem({ "Filter Method", tempStr.Format("%u", filterMethod) });
+
+    const auto interlaceMethod = png->ihdr.interlace;
+    const auto interlaceMethodStr = getInterlaceMethod(interlaceMethod);
+    general->AddItem({ "Interlace Method", tempStr.Format("%u: %s", interlaceMethod, interlaceMethodStr.GetText()) });
 }
 
 void Panels::Information::UpdateIssues()
