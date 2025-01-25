@@ -96,10 +96,10 @@ namespace Type
           public:
             Signature signature;
             IhdrChunk ihdr;
-            sRgbChunk srgb;
-            PlteChunk* plte;
-            IdatChunk* idat;
-            IendChunk iend;
+            // sRgbChunk srgb;
+            // PlteChunk plte;
+            // std::list<IdatChunk> idat;
+            // IendChunk iend;
 
             Reference<GView::Utils::SelectionZoneInterface> selectionZoneInterface;
 

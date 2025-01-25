@@ -10,9 +10,9 @@ bool PNGFile::Update()
 {
     memset(&signature, 0, sizeof(signature));
     memset(&ihdr,      0, sizeof(ihdr));
-    memset(&plte,      0, sizeof(plte));
-    memset(&idat,      0, sizeof(idat));
-    memset(&iend,      0, sizeof(iend));
+    // memset(&plte,      0, sizeof(plte));
+    // memset(&idat,      0, sizeof(idat));
+    // memset(&iend,      0, sizeof(iend));
 
     auto& data    = this->obj->GetData();
     uint64 offset = 0;
@@ -23,25 +23,6 @@ bool PNGFile::Update()
 
     CHECK(data.Copy<IhdrChunk>(offset, ihdr), false, "");
     offset += sizeof(IhdrChunk);
-
-    // Does the other chunks have important information to be saved?
-
-    // const auto dataSize = data.GetSize();
-    // while (offset < dataSize)
-    // {
-    //     if (memcmp(data + offset, PNG::IDAT_CHUNK, sizeof(PNG::IDAT_CHUNK)) == 0) {
-    //         foundIDAT = true;
-    //     }
-
-    //     if (memcmp(data + offset, PNG::IEND_CHUNK, sizeof(PNG::IEND_CHUNK)) == 0) {
-    //         const uint8 sizeZero[] = { 0, 0, 0, 0 };
-    //         if (memcmp(data + offset - sizeof(PNG::IEND_CHUNK), sizeZero, sizeof(sizeZero))== 0) {
-    //             foundIEND = true;
-    //         }
-    //     }
-
-    //     offset++;
-    // }
 
     return true;
 }

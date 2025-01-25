@@ -99,7 +99,7 @@ void CreateBufferView(Reference<GView::View::WindowInterface> win, Reference<PNG
         }
 
         // Compute the size of the chunk based on the length of the chunk data, which is variable and the size of the chunk type, 
-        // length and CRC fields (4 + 4 +4 = 12 bytes)
+        // length and CRC fields (4 + 4 + 4 = 12 bytes)
         chunkSize = PNG::CHUNK_LENGTH_SIZE + PNG::CHUNK_TYPE_SIZE + chunkLength + PNG::CRC_SIZE;
 
         switch (chunkType) {
